@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 결정 돌림판 (AI Roulette)</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --card-bg: #16213e;
+            --accent-red: #e63946;
+            --accent-yellow: #ffb703;
+            --accent-blue: #2196f3;
+            --text-light: #f8f9fa;
+            --border-dark: #0f3460;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            color: var(--accent-yellow);
+            text-shadow: 0 2px 10px rgba(255, 183, 3, 0.3);
+            margin-bottom: 8px;
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #a0aab8;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        @media (min-width: 850px) {
+            .container {
+                flex-direction: row;
+                align-items: flex-start;
+                justify-content: center;
+            }
+        }
+
+        /* Wheel Styles */
+        .wheel-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .wheel-wrapper {
+            position: relative;
+            width: 340px;
+            height: 340px;
+            padding: 10px;
+            background: #111;
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(255,255,255,0.1);
+        }
+
+        /* The Red Stopper / Arrow at top */
+        .stopper {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 30px solid var(--accent-red);
+            z-index: 20;
+            filter: drop-shadow(0 3px 5px rgba(0,0,0,0.5));
+        }
+
+        canvas {
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0,0,0,0.8);
+            transition: transform 4s cubic-bezier(0.15, 0.99, 0.35, 1);
+        }
+
+        /* Center Spiral Hub */
+        .center-hub {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fff 20%, #e63946 80%);
+            border: 4px solid #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.6);
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .center-hub::after {
+            content: '';
+            width: 14px;
+            height: 14px;
+            background: #333;
+            border-radius: 50%;
+            border: 2px solid #fff;
+        }
+
+        .wheel-stand {
+            width: 120px;
+            height: 25px;
+            background: linear-gradient(180deg, #333, #111);
+            border-top: 3px solid #555;
+            margin-top: -5px;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        /* Control & Reason Section */
+        .control-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-dark);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.9rem;
+            color: #a0aab8;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-blue);
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-add {
+            background: var(--accent-blue);
+            color: white;
+            padding: 10px 16px;
+        }
+
+        .btn-add:hover {
+            background: #1976d2;
+        }
+
+        .btn-spin {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #ffb703, #fb8500);
+            color: #000;
+            font-size: 1.1rem;
+            border-radius: 10px;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(255, 183, 3, 0.4);
+            margin-bottom: 20px;
+        }
+
+        .btn-spin:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 183, 3, 0.6);
+        }
+
+        .btn-spin:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .items-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            max-height: 120px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 5px;
+        }
+
+        .tag {
+            background: #0f172a;
+            border: 1px solid #334155;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tag .remove-btn {
+            color: #ff6b6b;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        /* Result & AI Reason Box */
+        .result-box {
+            background: #0f172a;
+            border: 1px solid var(--accent-yellow);
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-title {
+            font-size: 0.85rem;
+            color: #a0aab8;
+            margin-bottom: 5px;
+        }
+
+        .result-winner {
+            font-size: 1.6rem;
+            color: var(--accent-yellow);
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+
+        .ai-reason {
+            font-size: 0.92rem;
+            color: #e2e8f0;
+            line-height: 1.5;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-yellow);
+            text-align: left;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🎯 AI 결정 돌림판</h1>
+        <p>선택하기 어려운 고민, AI가 대신 결정하고 완벽한 명분까지 만들어 드립니다!</p>
+    </header>
+
+    <div class="container">
+        <!-- 돌림판 섹션 -->
+        <div class="wheel-section">
+            <div class="stopper"></div>
+            <div class="wheel-wrapper">
+                <canvas id="wheelCanvas" width="320" height="320"></canvas>
+                <div class="center-hub"></div>
+            </div>
+            <div class="wheel-stand"></div>
+        </div>
+
+        <!-- 입력 및 AI 이유 생성 섹션 -->
+        <div class="control-section">
+            <div class="input-group">
+                <label for="itemInput">선택지 추가 (최소 2개)</label>
+                <div class="input-row">
+                    <input type="text" id="itemInput" placeholder="예: 짜장면, 짬뽕, 마라탕..." onkeydown="if(event.key==='Enter') addItem()">
+                    <button class="btn-add" onclick="addItem()">추가</button>
+                </div>
+            </div>
+
+            <div class="items-list" id="itemsList"></div>
+
+            <button class="btn-spin" id="spinBtn" onclick="spinWheel()">돌림판 돌리기 🚀</button>
+
+            <div class="result-box" id="resultBox">
+                <div class="result-title">AI가 선택한 최고의 결과</div>
+                <div class="result-winner" id="winnerText">-</div>
+                <div class="ai-reason" id="reasonText">
+                    AI가 명분을 생성하는 중입니다...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 원본 이미지 기반 컬러 팔레트 (초록, 보라/청보라, 노랑, 빨강, 파랑 등 반복)
+        const PALETTE = [
+            '#00a859', // 초록
+            '#1b1464', // 남보라
+            '#fff200', // 노랑
+            '#ed1c24', // 빨강
+            '#00aeef', // 파랑
+            '#f7941e', // 주황 (추가 옵션용)
+            '#92278f'  // 보라 (추가 옵션용)
+        ];
+
+        let items = ['짜장면', '짬뽕', '마라탕', '돈까스', '초밥'];
+        let currentRotation = 0;
+        let isSpinning = false;
+
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const center = canvas.width / 2;
+        const radius = center - 5;
+
+        // 돌림판 그리기
+        function drawWheel() {
+            const numItems = items.length;
+            if (numItems === 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+
+            const arcSize = (2 * Math.PI) / numItems;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < numItems; i++) {
+                const angle = i * arcSize;
+                
+                // 부채꼴 색상
+                ctx.beginPath();
+                ctx.fillStyle = PALETTE[i % PALETTE.length];
+                ctx.moveTo(center, center);
+                ctx.arc(center, center, radius, angle, angle + arcSize);
+                ctx.lineTo(center, center);
+                ctx.fill();
+
+                // 검은색 구분선 (원본 이미지 반영)
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#000000';
+                ctx.stroke();
+
+                // 노란색 고정 핀/돌기 (원본 이미지 외곽 핀 반영)
+                const pinAngle = angle;
+                const pinX = center + (radius - 12) * Math.cos(pinAngle);
+                const pinY = center + (radius - 12) * Math.sin(pinAngle);
+                
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(pinX, pinY, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = '#ffcc00';
+                ctx.fill();
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.restore();
+
+                // 텍스트 그리기
+                ctx.save();
+                ctx.translate(center, center);
+                ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = 'right';
+                
+                // 배경색에 따라 글자색 가독성 처리
+                const colorHex = PALETTE[i % PALETTE.length];
+                ctx.fillStyle = (colorHex === '#fff200' || colorHex === '#00aeef') ? '#000000' : '#ffffff';
+                ctx.font = 'bold 15px sans-serif';
+                ctx.fillText(items[i], radius - 25, 5);
+                ctx.restore();
+            }
+        }
+
+        // 아이템 목록 태그 렌더링
+        function renderItems() {
+            const listContainer = document.getElementById('itemsList');
+            listContainer.innerHTML = '';
+            items.forEach((item, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'tag';
+                tag.innerHTML = `
+                    <span>${item}</span>
+                    <span class="remove-btn" onclick="removeItem(${index})">&times;</span>
+                `;
+                listContainer.appendChild(tag);
+            });
+            drawWheel();
+        }
+
+        function addItem() {
+            const input = document.getElementById('itemInput');
+            const val = input.value.trim();
+            if (val) {
+                items.push(val);
+                input.value = '';
+                renderItems();
+            }
+        }
+
+        function removeItem(index) {
+            if (items.length <= 2) {
+                alert('최소 2개의 선택지가 필요합니다.');
+                return;
+            }
+            items.splice(index, 1);
+            renderItems();
+        }
+
+        // 돌림판 회전 실행
+        function spinWheel() {
+            if (isSpinning) return;
+            if (items.length < 2) {
+                alert('최소 2개 이상의 선택지를 추가해 주세요.');
+                return;
+            }
+
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+            document.getElementById('resultBox').style.display = 'none';
+
+            // 랜덤 회전각 설정 (최소 5바퀴 + 무작위 각도)
+            const extraRotations = 5 + Math.floor(Math.random() * 5);
+            const randomDegree = Math.floor(Math.random() * 360);
+            const totalDegrees = extraRotations * 360 + randomDegree;
+
+            currentRotation += totalDegrees;
+            canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+            // 애니메이션 완료 후 당첨 항목 계산 (4초 후)
+            setTimeout(() => {
+                isSpinning = false;
+                document.getElementById('spinBtn').disabled = false;
+                calculateWinner(currentRotation);
+            }, 4000);
+        }
+
+        // 당첨자 계산 및 AI 명분 생성
+        function calculateWinner(rotation) {
+            const actualDegree = rotation % 360;
+            // 상단 핀 위치는 -90도 (또는 270도) 위치임
+            // 회전 후 상단 핀에 걸친 부채꼴 계산
+            const numItems = items.length;
+            const degreesPerItem = 360 / numItems;
+
+            // 회전각 보정: 시계방향 회전이므로 360 - (각도 % 360) + 270(상단 기준)
+            let effectiveDegree = (270 - (actualDegree % 360) + 360) % 360;
+            const selectedIndex = Math.floor(effectiveDegree / degreesPerItem) % numItems;
+            
+            const winner = items[selectedIndex];
+
+            showResult(winner);
+        }
+
+        // 결과 표시 및 AI 이유 생성 기능
+        function showResult(winner) {
+            const resultBox = document.getElementById('resultBox');
+            const winnerText = document.getElementById('winnerText');
+            const reasonText = document.getElementById('reasonText');
+
+            winnerText.innerText = winner;
+            reasonText.innerHTML = `🤖 <i>AI가 최적의 명분을 분석 중입니다...</i>`;
+            resultBox.style.display = 'block';
+
+            // AI 이유 생성 시뮬레이션 (웹 프롬프트/로직 기반)
+            setTimeout(() => {
+                const generatedReason = generateAIReason(winner, items);
+                reasonText.innerHTML = `<strong>AI의 결정 이유:</strong><br>${generatedReason}`;
+            }, 1200);
+        }
+
+        // AI 결정 이유 프롬프트 기반 로직 생성기
+        function generateAIReason(winner, allOptions) {
+            const reasonsTemplates = [
+                `현재 뇌파 및 스트레스 지수를 분석한 결과, **'${winner}'**을(를) 선택했을 때 엔도르핀 분비가 가장 극대화될 확률이 98.7%입니다. 다른 옵션(${allOptions.filter(i=>i!==winner).slice(0,2).join(', ')})보다 현재 상황에서 최고의 만족도를 제공합니다!`,
+                `빅데이터 기반 확률 모델링에 따르면, 오늘의 운세와 바이오리듬에 가장 부합하는 최선의 선택은 **'${winner}'**입니다. 망설임은 후회만 남길 뿐, 고민 없이 바로 진행하십시오!`,
+                `결정 장애 해결 알고리즘 분석 완료: **'${winner}'**은(는) 비용 대비 심리적 만족도(가심비)가 가장 높게 산출되었습니다. 고민할 시간에 지금 바로 실행에 옮기는 것이 영양학적·심리학적으로 이롭습니다.`
+            ];
+            
+            const randomIndex = Math.floor(Math.random() * reasonsTemplates.length);
+            return reasonsTemplates[randomIndex];
+        }
+
+        // 초기화
+        renderItems();
+    </script>
+</body>
+</html>
